@@ -134,7 +134,7 @@ public class DefaultExcelRepository implements ExcelRepository {
 		try(OutputStream stream = new FileOutputStream(path)){
 			workbook.write(stream);
 		}catch(Exception e){
-			LOG.error("Error occurred while writing to File:"+path);
+			LOG.error("Error occurred while writing to File:{}",path);
 		}
 	}
 	
