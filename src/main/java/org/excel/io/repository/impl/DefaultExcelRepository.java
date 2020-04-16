@@ -23,6 +23,7 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.excel.io.exception.DuplicateUIDException;
 import org.excel.io.exception.ExcelRepositoryException;
+import org.excel.io.exception.ExcelIOException;
 import org.excel.io.exception.ValueNotFoundException;
 import org.excel.io.repository.ExcelRepository;
 import org.slf4j.Logger;
@@ -44,7 +45,6 @@ public class DefaultExcelRepository implements ExcelRepository {
 	private static int initCount = 0;
 	
 	private InputStream inputStream = null;
-	private OutputStream outputStream = null;
 
 	
 	public DefaultExcelRepository(String path, boolean isOnDemand){
@@ -57,13 +57,12 @@ public class DefaultExcelRepository implements ExcelRepository {
 		try {
 			this.inputStream = Objects.requireNonNull(inputStream);
 			this.workbook = new XSSFWorkbook(inputStream);
-			this.outputStream = new FileOutputStream(path);
 			isClosed = false;
 			incrementCount();
 			LOG.debug("Workbook initialization completed with Count:{} ",getInitCount());
 		} catch (IOException e) {
 			LOG.error("Error occured while initializing the workbook.",e);
-			throw new ExcelRepositoryException("Error occured while initializing the workbook.",e);
+			throw new ExcelIOException("Error occured while initializing the workbook.",e);
 		}
 	}
 	
@@ -132,9 +131,11 @@ public class DefaultExcelRepository implements ExcelRepository {
 	}
 	
 	private void closeOutStream() throws IOException{
-		workbook.write(outputStream);
-		if(outputStream != null)
-			outputStream.close();
+		try(OutputStream stream = new FileOutputStream(path)){
+			workbook.write(stream);
+		}catch(Exception e){
+			LOG.error("Error occurred while writing to File:"+path);
+		}
 	}
 	
 	private void closeInStream() throws IOException{
@@ -145,8 +146,6 @@ public class DefaultExcelRepository implements ExcelRepository {
 	private void makeStreamsNull(){
 		if(Objects.nonNull(inputStream))
 			inputStream = null;
-		if(Objects.nonNull(outputStream))
-			outputStream = null;
 		if(Objects.nonNull(workbook))
 			workbook = null;
 	}
