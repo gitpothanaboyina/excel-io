@@ -43,7 +43,7 @@ public class DefaultExcelRepository implements ExcelRepository {
 	private String path = null;
 	private boolean isOnDemand;
 	private static int initCount = 0;
-	
+	private boolean isDirty;
 	private InputStream inputStream = null;
 
 	
@@ -131,10 +131,14 @@ public class DefaultExcelRepository implements ExcelRepository {
 	}
 	
 	private void closeOutStream() throws IOException{
-		try(OutputStream stream = new FileOutputStream(path)){
-			workbook.write(stream);
-		}catch(Exception e){
-			LOG.error("Error occurred while writing to File:{}",path);
+		if(isDirty){
+			try(OutputStream stream = new FileOutputStream(path)){
+				workbook.write(stream);
+				isDirty = false;
+			}catch(Exception e){
+				LOG.error("Error occurred while writing to File:"+path);
+				throw new ExcelIOException(e);
+			}
 		}
 	}
 	
@@ -277,6 +281,7 @@ public class DefaultExcelRepository implements ExcelRepository {
 		XSSFRow row = getOrCreateRow(xssfSheet, rid);
 		XSSFCell cell = getOrCreateCell(row, cid);
 		cell.setCellValue(content);
+		isDirty = true;
 		flush();
 	}
 
